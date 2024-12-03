@@ -1,24 +1,41 @@
 ﻿string filePath = "input.txt";
 string[] lines = File.ReadAllLines(filePath);
 
-IEnumerable<IEnumerable<int>> levelLines = lines.Select(
-    line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(level => int.Parse(level))
-);
+int[][] levelLines = lines.Select(
+    line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(level => int.Parse(level)).ToArray()
+).ToArray();
 
-IEnumerable<IEnumerable<int>> diffsLines = levelLines.Select(levels =>
+int[][] diffsLines = levelLines.Select(
+    levels => levels.Skip(1).Zip(levels, (current, previous) => current - previous).ToArray()
+).ToArray();
+
+Func<int[], bool> allNegative = l => l.Aggregate(true, (current, i) => current && i < 0);
+Func<int[], bool> allPositive = l => l.Aggregate(true, (current, i) => current && i > 0);
+Func<int[], bool> allAbsLteThree = l => l.Aggregate(true, (current, i) => current && Math.Abs(i) <= 3);
+Func<int[], bool> isValidDiffLine = l => (allNegative(l) || allPositive(l)) && allAbsLteThree(l);
+
+int[][] safeReports = diffsLines.Where(
+    diffs => isValidDiffLine(diffs)
+).ToArray();
+Console.WriteLine(safeReports.Count());
+
+// part2
+int[][] unsafeReports = diffsLines.Where(
+    diffs => !isValidDiffLine(diffs)
+).ToArray();
+
+int[][] unsafeReportsWithOneError = unsafeReports.Where(line =>
 {
-    var enumerable = levels.ToList();
-    return enumerable.Skip(1).Zip(enumerable, (current, previous) => current - previous);
-});
+    int[][] permutations = line
+        .Select((_, index) => line
+            .Select((n, i) => i == index - 1 ? line[i] + line[index] : n) // if previous index => add the number we're gonna remove
+            .Where((_, i) => i != index) // filter out current idx
+            .ToArray()
+        )
+        .Append(line.Take(line.Length - 1).ToArray()) // remove the last level = remove the last diff
+        .ToArray();
 
-Func<IEnumerable<int>, bool> allNegative = l => l.Aggregate(true, (current, i) => current && i < 0);
-Func<IEnumerable<int>, bool> allPositive = l => l.Aggregate(true, (current, i) => current && i > 0);
-Func<IEnumerable<int>, bool> allAbsLteThree = l => l.Aggregate(true, (current, i) => current && Math.Abs(i) <= 3);
+    return permutations.Any(diffs => isValidDiffLine(diffs));
+}).ToArray();
 
-IEnumerable<bool> safeReports = diffsLines.Select(levels =>
-{
-    var enumerable = levels.ToList();
-    return (allNegative(enumerable) || allPositive(enumerable)) && allAbsLteThree(enumerable);
-});
-
-Console.WriteLine(safeReports.Aggregate(0, (carry, safe) => carry + (safe ? 1 : 0)));
+Console.WriteLine(unsafeReportsWithOneError.Count() + safeReports.Count());
