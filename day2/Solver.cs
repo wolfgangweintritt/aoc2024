@@ -5,37 +5,28 @@ int[][] levelLines = lines.Select(
     line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(level => int.Parse(level)).ToArray()
 ).ToArray();
 
-int[][] diffsLines = levelLines.Select(
-    levels => levels.Skip(1).Zip(levels, (current, previous) => current - previous).ToArray()
-).ToArray();
+Func<int[], int[]> toDiff = levels => levels.Skip(1).Zip(levels, (current, previous) => current - previous).ToArray();
+Func<int[], bool> allDiffsNegative = l => toDiff(l).Aggregate(true, (current, i) => current && i < 0);
+Func<int[], bool> allDiffsPositive = l => toDiff(l).Aggregate(true, (current, i) => current && i > 0);
+Func<int[], bool> allDiffsAbsLteThree = l => toDiff(l).Aggregate(true, (current, i) => current && Math.Abs(i) <= 3);
+Func<int[], bool> isValidLevelLine = l => (allDiffsNegative(l) || allDiffsPositive(l)) && allDiffsAbsLteThree(l);
 
-Func<int[], bool> allNegative = l => l.Aggregate(true, (current, i) => current && i < 0);
-Func<int[], bool> allPositive = l => l.Aggregate(true, (current, i) => current && i > 0);
-Func<int[], bool> allAbsLteThree = l => l.Aggregate(true, (current, i) => current && Math.Abs(i) <= 3);
-Func<int[], bool> isValidDiffLine = l => (allNegative(l) || allPositive(l)) && allAbsLteThree(l);
-
-int[][] safeReports = diffsLines.Where(
-    diffs => isValidDiffLine(diffs)
-).ToArray();
-Console.WriteLine(safeReports.Count());
+int[][] safeReports = levelLines
+    .Where(line => isValidLevelLine(line))
+    .ToArray();
+Console.WriteLine(safeReports.Length);
 
 // part2
-int[][] unsafeReports = diffsLines.Where(
-    diffs => !isValidDiffLine(diffs)
-).ToArray();
+int[][] unsafeReports = levelLines
+    .Where(line => !isValidLevelLine(line)).ToArray();
 
-int[][] unsafeReportsWithOneError = unsafeReports.Where(line =>
-{
-    int[][] permutations = line
+int[][] unsafeReportsWithOneError = unsafeReports
+    .Where(line => line
         .Select((_, index) => line
-            .Select((n, i) => i == index - 1 ? line[i] + line[index] : n) // if previous index => add the number we're gonna remove
             .Where((_, i) => i != index) // filter out current idx
             .ToArray()
         )
-        .Append(line.Take(line.Length - 1).ToArray()) // remove the last level = remove the last diff
-        .ToArray();
+        .Any(l => isValidLevelLine(l))
+    ).ToArray();
 
-    return permutations.Any(diffs => isValidDiffLine(diffs));
-}).ToArray();
-
-Console.WriteLine(unsafeReportsWithOneError.Count() + safeReports.Count());
+Console.WriteLine(unsafeReportsWithOneError.Length + safeReports.Length);
