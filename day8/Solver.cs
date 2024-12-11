@@ -19,13 +19,14 @@ public class Solver
         {
             return new Diff(X - other.X, Y - other.Y);
         }
-        
+
         public override bool Equals(object? obj)
         {
             if (obj is Coordinate other)
             {
                 return X == other.X && Y == other.Y;
             }
+
             return false;
         }
 
@@ -82,6 +83,31 @@ public class Solver
         }
 
         (int, int) dimensions = (lines[0].Length, lines.Length);
+        var antinodes = Part1(antennas, dimensions);
+        Console.WriteLine(antinodes.Count);
+
+        // part 2
+        var antinodesPart2 = Part2(antennas, dimensions);
+        Console.WriteLine(antinodesPart2.Count);
+
+        foreach (Coordinate antinode in antinodesPart2)
+        {
+            Console.WriteLine(antinode.X + ", " + antinode.Y);
+        }
+
+        for (int y = 0; y < lines.Length; y++)
+        {
+            for (int x = 0; x < lines[y].Length; x++)
+            {
+                Console.Write(antinodesPart2.Contains(new Coordinate(x, y)) ? '#' : lines[y][x]);
+            }
+
+            Console.Write("\n");
+        }
+    }
+
+    private static HashSet<Coordinate> Part1(Dictionary<char, List<Coordinate>> antennas, (int, int) dimensions)
+    {
         HashSet<Coordinate> antinodes = new HashSet<Coordinate>();
         foreach (KeyValuePair<char, List<Coordinate>> antenna in antennas)
         {
@@ -105,20 +131,36 @@ public class Solver
             }
         }
 
-        foreach (Coordinate antinode in antinodes)
+        return antinodes;
+    }
+
+    private static HashSet<Coordinate> Part2(Dictionary<char, List<Coordinate>> antennas, (int, int) dimensions)
+    {
+        HashSet<Coordinate> antinodes = new HashSet<Coordinate>();
+        foreach (KeyValuePair<char, List<Coordinate>> antenna in antennas)
         {
-            Console.WriteLine(antinode.X + ", " + antinode.Y);
-        }
-        
-        Console.WriteLine(antinodes.Count);
-        
-        for (int y = 0; y < lines.Length; y++)
-        {
-            for (int x = 0; x < lines[y].Length; x++)
+            for (int a = 0; a < antenna.Value.Count - 1; a++)
             {
-                Console.Write(antinodes.Contains(new Coordinate(x, y)) ? '#' : lines[y][x]);
+                for (int b = a + 1; b < antenna.Value.Count; b++)
+                {
+                    Diff diff = antenna.Value[a].GetDiff(antenna.Value[b]);
+                    Coordinate c = antenna.Value[a];
+                    antinodes.Add(c);
+                    while ((c = new Coordinate(c.X + diff.X, c.Y + diff.Y)).IsValid(dimensions))
+                    {
+                        antinodes.Add(c);
+                    }
+
+                    c = antenna.Value[b];
+                    antinodes.Add(c);
+                    while ((c = new Coordinate(c.X - diff.X, c.Y - diff.Y)).IsValid(dimensions))
+                    {
+                        antinodes.Add(c);
+                    }
+                }
             }
-            Console.Write("\n");
         }
+
+        return antinodes;
     }
 }
