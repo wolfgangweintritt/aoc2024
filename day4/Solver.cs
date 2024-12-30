@@ -6,7 +6,7 @@ public class Solver
     {
         string filePath = "input.txt";
         string[] lines = File.ReadAllLines(filePath);
-        
+
         // lines = new string[]
         // {
         //     "..X...",
@@ -39,6 +39,44 @@ public class Solver
         string[] diagonals2 = Diagonals2FromMatrix(lines);
 
         Console.WriteLine(xmasSum(lines) + xmasSum(rotatedMinus90) + xmasSum(diagonals) + xmasSum(diagonals2));
+
+        Console.WriteLine(Part2(lines));
+    }
+
+    private static int Part2(string[] lines)
+    {
+        Func<string[], int, int, bool> containsMasCross = (string[] l, int r, int c) =>
+        {
+            if (r <= 0 || r >= l[0].Length - 1 || c <= 0 || c >= l.Length - 1 || l[r][c] != 'A')
+            {
+                return false;
+            }
+
+            char topLeft = lines[r - 1][c - 1];
+            char topRight = lines[r - 1][c + 1];
+            char bottomLeft = lines[r + 1][c - 1];
+            char bottomRight = lines[r + 1][c + 1];
+
+            bool IsMOrS(char ch) => ch is 'S' or 'M';
+
+            return IsMOrS(topLeft) && IsMOrS(topRight) && IsMOrS(bottomLeft) && IsMOrS(bottomRight)
+                   && topLeft != bottomRight
+                   && topRight != bottomLeft;
+        };
+
+        int masCrossCount = 0;
+        for (int r = 0; r < lines.Length; r++)
+        {
+            for (int c = 0; c < lines[0].Length; c++)
+            {
+                if (containsMasCross(lines, r, c))
+                {
+                    masCrossCount++;
+                }
+            }
+        }
+
+        return masCrossCount;
     }
 
     private static string[] DiagonalsFromMatrix(string[] lines)
@@ -64,7 +102,7 @@ public class Solver
 
         return newMatrix;
     }
-    
+
     private static string[] Diagonals2FromMatrix(string[] lines)
     {
         string[] newMatrix = new string[lines.Length + lines[0].Length - 1];
